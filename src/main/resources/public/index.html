@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html>
+<meta charset="utf-8"/>
+<head>
+    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
+</head>
+<body>
+<div id="app">
+    <v-app id="inspire">
+        <br/>
+        <v-card
+                class="mx-auto"
+                max-width="1200"
+                elevation="10"
+                shaped
+                raised
+                float-none
+        >
+            <v-form
+                    ref="form"
+                    v-model="valid"
+                    lazy-validation>
+                <v-card-title class="font-weight-black">Transações</v-card-title>
+                <v-card-text class="headline font-weight-bold">
+                    <v-row>
+                        <v-col cols="12" sm="3" md="4">
+                            <v-text-field
+                                    id="Number"
+                                    v-model="account.number"
+                                    placeholder=" "
+                                    label="Número da Conta"
+                                    required
+                                    :rules="[rules.required]"
+                            ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" sm="3" md="4">
+                            <v-autocomplete
+                                    label="Tipo"
+                                    :items="['DEPOSITO', 'SAQUE', 'PAGAMENTO', 'TRANSFERENCIA']"
+                                    variant="underlined"
+                                    v-model="account.type"
+                                    required
+                            ></v-autocomplete>
+                        </v-col>
+                        <v-col cols="12" sm="3" md="4">
+                            <v-text-field
+                                    id="value"
+                                    v-model="account.value"
+                                    placeholder=" "
+                                    label="Valor"
+                                    required
+                                    :rules="[rules.required]"
+                            ></v-text-field>
+                        </v-col>
+                    </v-row>
+                    <br/>
+                    <v-btn @click="save(account)" color="success" :disabled="!valid">enviar</v-btn>
+                    <v-btn @click="cleanCustomer(account)" color="error">limpar</v-btn>
+                </v-card-text>
+            </v-form>
+        </v-card>
+        <v-dialog v-model="alertError" max-width="700px">
+            <v-card color="red" dark heigth="500px">
+                <v-card-title>
+                    <span><i class="fas fa-exclamation-triangle" style="margin-right: 15px"></i>{{restMethodError}}.</span>
+                    <v-spacer></v-spacer>
+                    <v-menu center left>
+                        <template v-slot:activator="{ on }">
+                            <v-btn icon @click="alertError = false">
+                                <img src="https://cdn-icons-png.flaticon.com/512/458/458595.png" alt="" height="23px" width="23px">
+                            </v-btn>
+                        </template>
+                        <v-list>
+                            <v-list-item @click="() => {}">
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
+                </v-card-title>
+            </v-card>
+        </v-dialog>
+        <v-dialog v-model="alert" max-width="800px" heigth="100px">
+            <v-card color="green" dark>
+                <v-card-title>
+                    <span><i class="fas fa-check-circle" style="margin-right: 15px"></i>Operação realizada com sucesso.</span>
+                    <v-spacer></v-spacer>
+                    <v-menu center left>
+                        <template v-slot:activator="{ on }">
+                            <v-btn icon @click="alert = false">
+                                <img src="https://cdn-icons-png.flaticon.com/512/458/458595.png" alt="" height="23px" width="23px">
+                            </v-btn>
+                        </template>
+                        <v-list>
+                            <v-list-item @click="() => {}">
+                            </v-list-item>
+                        </v-list>
+                    </v-menu>
+                </v-card-title>
+            </v-card>
+        </v-dialog>
+        <br/>
+        <br/>
+        <v-card
+                class="mx-auto"
+                max-width="1500"
+                elevation="10"
+                float-none
+        >
+            <v-data-table :headers="headers" :items="desserts" item-key="name" class="elevation-1">
+                <template v-slot:item.action="{ item }">
+                    <v-btn elevation="1"
+                           icon
+                           @click="buscaItem(item)"
+                    ><img src="https://cdn-icons-png.flaticon.com/512/6328/6328608.png" alt="" height="23px" width="23px">
+                    </v-btn>
+                </template>
+            </v-data-table>
+        </v-card>
+        <br/>
+        <v-card class="mx-auto"
+                max-width="1200"
+                elevation="10"
+                shaped
+                raised
+                float-none>
+            <v-form
+                    ref="form"
+                    v-model="valid"
+                    lazy-validation>
+                <v-card-title class="font-weight-black">Histórico de Transações</v-card-title>
+                <v-card-text class="headline font-weight-bold">
+                    <v-row>
+                        <v-col cols="12" sm="4" md="4">
+                            <v-text-field
+                                    id="number"
+                                    v-model="customer.number"
+                                    placeholder=" "
+                                    label="Número da Conta"
+                                    disabled
+                            ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" sm="4" md="4">
+                            <v-text-field
+                                    id="name"
+                                    v-model="customer.name"
+                                    placeholder=" "
+                                    label="Nome"
+                                    disabled
+                            ></v-text-field>
+                        </v-col>
+                        <v-col cols="12" sm="4" md="4">
+                            <v-text-field
+                                    id="balance"
+                                    v-model="customer.balance"
+                                    placeholder=" "
+                                    label="Saldo"
+                                    disabled
+                            ></v-text-field>
+                        </v-col>
+                    </v-row>
+                    <br/>
+                    <div v-for="(transaction, index) in customer.transactionList">
+                        <v-card class="mx-auto"
+                                max-width="900"
+                                elevation="10">
+
+                            <v-col cols="12" md="12">
+                                <v-row>
+                                    <v-col cols="12" sm="6" md="4">
+                                        <v-text-field
+                                                id="idtTansaction"
+                                                v-model="transaction.idTransaction"
+                                                placeholder=" "
+                                                disabled
+                                                label="Id Transaction"
+                                                size="10"
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" sm="6" md="4">
+                                        <v-text-field
+                                                id="type"
+                                                v-model="transaction.type"
+                                                placeholder=" "
+                                                disabled
+                                                label="Tipo"
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" sm="6" md="4">
+                                        <v-text-field
+                                                id="value"
+                                                v-model="transaction.value"
+                                                placeholder=" "
+                                                disabled
+                                                label="Valor"
+                                        ></v-text-field>
+                                    </v-col>
+                                </v-row>
+                                <v-row>
+                                    <v-col cols="12" sm="6" md="3">
+                                        <v-text-field
+                                                id="balanceBefore"
+                                                v-model="transaction.balanceBefore"
+                                                placeholder=" "
+                                                disabled
+                                                label="Saldo Anterior"
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" sm="6" md="3">
+                                        <v-text-field
+                                                id="balanceAfter"
+                                                v-model="transaction.balanceAfter"
+                                                placeholder=" "
+                                                disabled
+                                                label="Saldo Final"
+                                        ></v-text-field>
+                                    </v-col>
+                                    <v-col cols="12" sm="6" md="6">
+                                        <v-text-field
+                                                id="data"
+                                                v-model="transaction.data"
+                                                placeholder=" "
+                                                disabled
+                                                label="Data"
+                                        ></v-text-field>
+                                    </v-col>
+                                </v-row>
+                            </v-col>
+                        </v-card>
+                        <br/>
+                    </div>
+                </v-card-text>
+            </v-form>
+        </v-card>
+        <br/>
+        <br/>
+        <v-footer dark padless>
+            <v-card class="flex" flat tile>
+                <v-card-text class="py-2 white--text text-center">
+                    <v-btn class="mx-4" dark icon target="_blank" href="https://github.com/samueldesouzadev">
+                        <v-icon size="24px" class="fab fa-github-square"></v-icon>
+                    </v-btn>
+                    <v-btn class="mx-4" dark icon target="_blank" href="https://www.linkedin.com/in/samueldesouza-dev">
+                        <v-icon size="24px" class="fab fa-linkedin"></v-icon>
+                    </v-btn>
+                    <v-tooltip right>
+                        <template v-slot:activator="{ on }">
+                            <v-btn dark icon v-on="on" class="mx-4">
+                                <v-icon size="24px" class="fas fa-envelope"></v-icon>
+                            </v-btn>
+                        </template>
+                        <span>{{email}}</span>
+                    </v-tooltip>
+                    <v-spacer></v-spacer>
+                </v-card-text>
+            </v-card>
+        </v-footer>
+    </v-app>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+<script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
+<script src="js/index.js"></script>
+</body>
+</html>
